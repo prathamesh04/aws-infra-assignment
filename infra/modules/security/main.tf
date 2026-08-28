@@ -45,12 +45,15 @@ resource "aws_security_group" "app" {
     security_groups = [aws_security_group.alb.id]
   }
 
-  ingress {
-    description     = "SSH from bastion"
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
-    security_groups = [var.bastion_sg_id]
+  dynamic "ingress" {
+    for_each = var.bastion_sg_id != "" ? [1] : []
+    content {
+      description     = "SSH from bastion"
+      from_port       = 22
+      to_port         = 22
+      protocol        = "tcp"
+      security_groups = [var.bastion_sg_id]
+    }
   }
 
   egress {

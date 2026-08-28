@@ -63,6 +63,12 @@ variable "db_allocated_storage" {
   default = 20
 }
 
+variable "db_max_allocated_storage" {
+  type        = number
+  default     = 0
+  description = "Maximum RDS storage autoscaling (0 disables autoscaling). Free tier requires 0."
+}
+
 variable "db_name" {
   type        = string
   default     = "appdb"

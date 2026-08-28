@@ -1,10 +1,11 @@
 data "aws_ami" "amazon_linux" {
   most_recent = true
-  owners      = ["137112412989"]
+  # Ubuntu 24.04 LTS (Noble) x86_64 - matches the Ubuntu-based user-data (apt/docker)
+  owners = ["099720109477"]
 
   filter {
     name   = "name"
-    values = ["al2023-ami-2023.*-x86_64"]
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
 
   filter {
@@ -123,6 +124,7 @@ module "database" {
   environment                  = var.environment
   instance_class               = var.db_instance_class
   allocated_storage            = var.db_allocated_storage
+  max_allocated_storage        = var.db_max_allocated_storage
   db_name                      = var.db_name
   db_username                  = var.db_username
   db_password                  = var.db_password
