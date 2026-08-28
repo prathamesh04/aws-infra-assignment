@@ -147,7 +147,7 @@ jobs:
           terraform_version: 1.12.2
       - name: Terraform init (production)
         working-directory: infra/environments/production
-        run: terraform init -backend-config=bucket=${{ secrets.TF_STATE_BUCKET }}-prod -reconfigure
+        run: terraform init -backend-config=bucket=${{ secrets.TF_STATE_BUCKET }} -reconfigure
       - name: Update tfvars
         working-directory: infra/environments/production
         run: |
