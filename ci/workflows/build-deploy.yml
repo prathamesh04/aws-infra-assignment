@@ -1,0 +1,166 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-south-1
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ECR_REPOSITORY: app
+  APP_DIR: app
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm test
+
+  build-and-push:
+    name: Build & Push Docker Image to ECR
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      image: ${{ steps.build.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image
+        id: build
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd ${{ env.APP_DIR }}
+          IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          IMAGE_LATEST="$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker build -t "$IMAGE" -t "$IMAGE_LATEST" .
+          docker push "$IMAGE"
+          docker push "$IMAGE_LATEST"
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Scan pushed image with Trivy
+        uses: aquasecurity/trivy-action@0.19.0
+        with:
+          image-ref: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+          severity: 'CRITICAL,HIGH'
+          format: 'table'
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2
+
+      - name: Terraform init (staging)
+        working-directory: infra/environments/staging
+        run: terraform init -backend-config=bucket=${{ secrets.TF_STATE_BUCKET }} -reconfigure
+
+      - name: Update app image in launch template via tfvars
+        working-directory: infra/environments/staging
+        run: |
+          cp terraform.tfvars.example /tmp/tfvars
+          echo "app_image = \"${{ needs.build-and-push.outputs.image }}\"" >> /tmp/tfvars
+          cp /tmp/tfvars terraform.tfvars
+
+      - name: Terraform apply (staging)
+        working-directory: infra/environments/staging
+        run: terraform apply -auto-approve -var-file=terraform.tfvars
+
+      - name: Roll forward app containers
+        run: |
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name staging-app-asg || true
+
+      - name: Smoke test staging
+        run: |
+          URL=$(cd infra/environments/staging && terraform output -raw app_url)
+          echo "Probing: $URL/health"
+          curl -fsS --retry 5 --retry-connrefused "$URL/health"
+
+  notify-success:
+    name: Notify Success
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, build-and-push]
+    if: success()
+    steps:
+      - run: echo "::notice::Staging deployment completed successfully"
+
+  deploy-production:
+    name: Deploy to Production (Manual Approval)
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, build-and-push]
+    environment:
+      name: production
+      url: ${{ steps.smoke.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2
+      - name: Terraform init (production)
+        working-directory: infra/environments/production
+        run: terraform init -backend-config=bucket=${{ secrets.TF_STATE_BUCKET }}-prod -reconfigure
+      - name: Update tfvars
+        working-directory: infra/environments/production
+        run: |
+          cp terraform.tfvars.example /tmp/tfvars
+          echo "app_image = \"${{ needs.build-and-push.outputs.image }}\"" >> /tmp/tfvars
+          cp /tmp/tfvars terraform.tfvars
+      - name: Terraform apply (production)
+        working-directory: infra/environments/production
+        run: terraform apply -auto-approve -var-file=terraform.tfvars
+      - name: Production smoke test
+        id: smoke
+        working-directory: infra/environments/production
+        run: |
+          URL=$(terraform output -raw app_url)
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          curl -fsS --retry 5 --retry-connrefused "$URL/health"

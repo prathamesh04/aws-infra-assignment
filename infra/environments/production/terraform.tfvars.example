@@ -1,0 +1,32 @@
+# Copy to terraform.tfvars and fill in real values.
+# Production requires hardened settings. NEVER commit real secrets.
+
+environment              = "production"
+region                   = "ap-south-1"
+vpc_cidr                 = "10.1.0.0/16"
+azs                      = ["ap-south-1a", "ap-south-1b", "ap-south-1c"]
+enable_nat_gateway       = true
+
+instance_type            = "t3.micro"
+asg_min_size             = 2
+asg_max_size             = 6
+asg_desired_capacity     = 2
+
+db_instance_class        = "db.t3.micro"
+db_allocated_storage     = 50
+db_name                  = "appdb"
+db_username              = "appuser"
+db_password              = "CHANGE_ME_STRONG_PRODUCTION_PASSWORD"
+multi_az                 = true
+backup_retention_period  = 30
+deletion_protection      = true
+skip_final_snapshot      = false
+performance_insights_enabled = true
+
+app_image                = "952868634839.dkr.ecr.ap-south-1.amazonaws.com/app:latest"
+
+alert_email              = "you@example.com"
+log_retention_days       = 90
+enable_alb_access_logs   = true
+alb_deletion_protection  = true
+enable_bastion           = true
