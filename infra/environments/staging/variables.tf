@@ -150,3 +150,20 @@ variable "admin_cidr_blocks" {
   type    = list(string)
   default = ["0.0.0.0/0"]
 }
+
+variable "dd_enabled" {
+  type        = bool
+  default     = false
+  description = "Enable Datadog agent + instrumentation"
+}
+
+variable "dd_api_key_secret_arn" {
+  type        = string
+  default     = ""
+  description = "ARN of AWS Secrets Manager secret with Datadog credentials"
+}
+
+variable "dd_site" {
+  type    = string
+  default = "datadoghq.com"
+}

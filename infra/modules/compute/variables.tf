@@ -87,3 +87,21 @@ variable "system_log_group" {
   type        = string
   description = "CloudWatch log group for system logs"
 }
+
+variable "dd_enabled" {
+  type        = bool
+  default     = false
+  description = "Enable Datadog agent + instrumentation on instances"
+}
+
+variable "dd_api_key_secret_arn" {
+  type        = string
+  default     = ""
+  description = "ARN of AWS Secrets Manager secret containing Datadog credentials"
+}
+
+variable "dd_site" {
+  type        = string
+  default     = "datadoghq.com"
+  description = "Datadog site (e.g. datadoghq.com, datadoghq.eu, ap1.datadoghq.com)"
+}

@@ -4,10 +4,13 @@ resource "aws_launch_template" "this" {
   instance_type = var.instance_type
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    app_image        = var.app_image
-    region           = var.region
-    app_log_group    = var.app_log_group
-    system_log_group = var.system_log_group
+    app_image             = var.app_image
+    region                = var.region
+    app_log_group         = var.app_log_group
+    system_log_group      = var.system_log_group
+    dd_enabled            = var.dd_enabled
+    dd_api_key_secret_arn = var.dd_api_key_secret_arn
+    dd_site               = var.dd_site
   }))
 
   iam_instance_profile {

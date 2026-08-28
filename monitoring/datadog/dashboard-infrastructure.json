@@ -1,0 +1,60 @@
+{
+  "title": "Infrastructure Dashboard - EC2 / RDS / ALB",
+  "description": "Infrastructure metrics from the Datadog AWS integration (auto-discovered from CloudWatch) and the Datadog agent on EC2.",
+  "layout_type": "free",
+  "widgets": [
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "EC2 CPU (%)",
+        "requests": [
+          { "q": "avg:system.cpu.user{*}.rollup(avg, 60) + avg:system.cpu.system{*}.rollup(avg, 60)", "display_type": "line", "style": { "palette": "green" } }
+        ]
+      },
+      "layout": { "x": 1, "y": 1, "width": 11, "height": 6 }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "EC2 Memory Used (%)",
+        "requests": [
+          { "q": "avg:system.mem.pct_usable{*}.rollup(avg, 60)*(-1) + 100", "display_type": "line", "style": { "palette": "blue" } }
+        ]
+      },
+      "layout": { "x": 12, "y": 1, "width": 11, "height": 6 }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "RDS CPU / Connections",
+        "requests": [
+          { "q": "avg:aws.rds.cpuutilization{*}.rollup(avg, 60)", "display_type": "line", "style": { "palette": "purple" } },
+          { "q": "avg:aws.rds.database_connections{*}.rollup(avg, 60)", "display_type": "line", "style": { "palette": "orange" } }
+        ]
+      },
+      "layout": { "x": 1, "y": 7, "width": 11, "height": 6 }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "ALB Requests & 5xx",
+        "requests": [
+          { "q": "sum:aws.applicationelb.request_count{*}.as_rate()", "display_type": "line", "style": { "palette": "green" } },
+          { "q": "sum:aws.applicationelb.5xx{*}.as_rate()", "display_type": "line", "style": { "palette": "red" } }
+        ]
+      },
+      "layout": { "x": 12, "y": 7, "width": 11, "height": 6 }
+    },
+    {
+      "definition": {
+        "type": "hostmap",
+        "title": "EC2 Host Map (CPU/Memory)",
+        "requests": {
+          "fill": { "q": "avg:system.cpu.user{*}" },
+          "size": { "q": "avg:system.mem.used{*}" }
+        }
+      },
+      "layout": { "x": 1, "y": 13, "width": 22, "height": 8 }
+    }
+  ]
+}

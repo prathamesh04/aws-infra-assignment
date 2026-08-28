@@ -1,0 +1,30 @@
+# Example: Dashboard-as-code with the Datadog Terraform provider.
+# Copy to datadog.tf and provide DD_API_KEY / DD_APP_KEY (or omit and use the
+# DD_API_KEY env var). Requires the `datadog/datadog` provider.
+#
+#   resource "datadog_dashboard" "application" {
+#     title         = "Application Dashboard - Request / Error / Latency"
+#     description   = "Provisioned from JSON (schema 3.0)"
+#     layout_type   = "free"
+#     dashboard_lists = []
+#     widget = [
+#       {
+#         definition = {
+#           type        = "timeseries"
+#           title       = "Request Rate (req/s)"
+#           requests = [{
+#             q           = "sum:http.request.count{*}.as_rate()"
+#             display_type = "line"
+#           }]
+#         }
+#         layout = { x = 1, y = 1, width = 11, height = 6 }
+#       }
+#     ]
+#   }
+
+# Provider (uncomment and fill):
+# provider "datadog" {
+#   api_key = var.dd_api_key   # from the same Secrets Manager secret
+#   app_key = var.dd_app_key
+#   api_url = "https://api.datadoghq.com/"
+# }

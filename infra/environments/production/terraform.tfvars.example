@@ -30,3 +30,8 @@ log_retention_days       = 90
 enable_alb_access_logs   = true
 alb_deletion_protection  = true
 enable_bastion           = true
+
+# --- Datadog monitoring integration (optional) ---
+dd_enabled               = true
+dd_site                  = "datadoghq.com"
+dd_api_key_secret_arn    = "arn:aws:secretsmanager:ap-south-1:952868634839:secret:datadog/app-OKaryO"

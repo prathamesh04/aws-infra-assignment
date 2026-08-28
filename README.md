@@ -243,6 +243,29 @@ Log groups retain for a configurable retention (`log_retention_days`, default 14
 
 ---
 
+## Datadog (recommended — your AWS account is integrated)
+
+In addition to AWS-native CloudWatch, observability is wired into **Datadog**:
+
+- **Infra metrics** — Datadog agent on EC2 (`system.cpu/mem/disk`) + AWS integration (RDS/ELB/EC2).
+- **App metrics** — `dd-trace` APM + custom StatsD metrics (`http.request.count`,
+  `http.request.latency`, `http.request.errors`) → request rate / error rate / latency.
+- **Centralized logs** — agent with `container_collect_all` (app + system logs).
+- **Two dashboards** — `monitoring/datadog/dashboard-infrastructure.json` and
+  `dashboard-application.json` (import-ready).
+
+The Datadog API key is stored in **AWS Secrets Manager** (not in git) and injected at boot.
+Setup + imports: [`monitoring/datadog/README.md`](./monitoring/datadog/README.md).
+
+Enable via terraform tfvars:
+```hcl
+dd_enabled            = true
+dd_site               = "datadoghq.com"
+dd_api_key_secret_arn = "arn:aws:secretsmanager:ap-south-1:952868634839:secret:datadog/app-OKaryO"
+```
+
+---
+
 ## Part 4 — Best Practices
 
 Implemented / documented:
@@ -296,6 +319,8 @@ Full notes: [`docs/COST_OPTIMIZATION.md`](./docs/COST_OPTIMIZATION.md)
 - `terraform validate` passes for both staging and production.
 - `terraform plan` (staging) succeeds: **53 resources to add**, 0 errors.
 - App unit/integration tests pass (3/3).
-- Docker image builds and runs; `/health` & `/` return HTTP 200.
+- Docker image builds and runs; `/health` & `/` return HTTP 200 (`/metrics` shows request/error counts).
+- Datadog instrumentation (`dd-trace` APM + StatsD metrics) verified in the image; agent wiring is
+  conditional (`dd_enabled`) and fails safe to no-op without it.
 - ECR image pushed for CI consumption.
 - Remote state S3 + DynamoDB lock backend operational.

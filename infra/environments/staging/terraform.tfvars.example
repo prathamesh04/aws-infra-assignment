@@ -24,3 +24,9 @@ app_image                = "952868634839.dkr.ecr.ap-south-1.amazonaws.com/app:la
 alert_email              = "you@example.com"
 log_retention_days       = 14
 enable_alb_access_logs   = true
+
+# --- Datadog monitoring integration (optional) ---
+dd_enabled               = true
+dd_site                  = "datadoghq.com"
+# ARN of the AWS Secrets Manager secret holding {"DD_API_KEY":"...","DD_SITE":"..."}
+dd_api_key_secret_arn    = "arn:aws:secretsmanager:ap-south-1:952868634839:secret:datadog/app-OKaryO"

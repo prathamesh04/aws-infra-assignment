@@ -1,0 +1,64 @@
+{
+  "title": "Application Dashboard - Request Rate / Error Rate / Latency",
+  "description": "Application-level metrics emitted by the sample app via dd-trace (custom StatsD) and APM.",
+  "layout_type": "free",
+  "widgets": [
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Request Rate (req/s)",
+        "requests": [
+          {
+            "q": "sum:http.request.count{*}.as_rate()",
+            "display_type": "line",
+            "style": { "palette": "green", "line_type": "solid", "line_width": "normal" }
+          }
+        ]
+      },
+      "layout": { "x": 1, "y": 1, "width": 11, "height": 6 }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Request Latency (ms)",
+        "requests": [
+          {
+            "q": "p50:http.request.latency{*}",
+            "display_type": "line",
+            "style": { "palette": "blue", "line_type": "solid", "line_width": "normal" }
+          },
+          {
+            "q": "p95:http.request.latency{*}",
+            "display_type": "line",
+            "style": { "palette": "purple", "line_type": "dashed", "line_width": "normal" }
+          }
+        ]
+      },
+      "layout": { "x": 12, "y": 1, "width": 11, "height": 6 }
+    },
+    {
+      "definition": {
+        "type": "timeseries",
+        "title": "Error Rate (errors/s)",
+        "requests": [
+          {
+            "q": "sum:http.request.errors{*}.as_rate() / sum:http.request.count{*}.as_rate() * 100",
+            "display_type": "line",
+            "style": { "palette": "red", "line_type": "solid", "line_width": "normal" }
+          }
+        ]
+      },
+      "layout": { "x": 1, "y": 7, "width": 22, "height": 6 }
+    },
+    {
+      "definition": {
+        "type": "trace_stream",
+        "title": "Recent Traces",
+        "requests": [
+          { "query": "service:sample-app", "type": "trace_stream" }
+        ]
+      },
+      "layout": { "x": 1, "y": 13, "width": 22, "height": 8 }
+    }
+  ]
+}

@@ -57,6 +57,26 @@ resource "aws_iam_role_policy_attachment" "ec2_app_cloudwatch" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
+resource "aws_iam_policy" "ec2_app_read_datadog_secret" {
+  count       = var.dd_enabled ? 1 : 0
+  name        = "${var.environment}-ec2-read-datadog-secret"
+  description = "Allow EC2 instances to read the Datadog secret"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["secretsmanager:GetSecretValue"]
+      Resource = [var.dd_api_key_secret_arn]
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_app_read_datadog_secret" {
+  count      = var.dd_enabled ? 1 : 0
+  role       = aws_iam_role.ec2_app.name
+  policy_arn = aws_iam_policy.ec2_app_read_datadog_secret[0].arn
+}
+
 resource "aws_iam_instance_profile" "ec2_app" {
   name = "${var.environment}-ec2-app-profile"
   role = aws_iam_role.ec2_app.name
@@ -147,6 +167,9 @@ module "compute" {
   sns_topic_arn         = module.monitoring.sns_topic_arn
   app_log_group         = module.monitoring.app_log_group
   system_log_group      = module.monitoring.system_log_group
+  dd_enabled            = var.dd_enabled
+  dd_api_key_secret_arn = var.dd_api_key_secret_arn
+  dd_site               = var.dd_site
 }
 
 resource "aws_s3_bucket" "access_logs" {
